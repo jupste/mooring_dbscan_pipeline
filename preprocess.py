@@ -191,13 +191,15 @@ if __name__ == '__main__':
     pbar = tqdm.tqdm(total=12)
     pbar.update(1)
     pbar.set_description("[Creating database connection]")
+    '''
     connection = database_connection()
     cursor = connection.cursor()
     cursor.arraysize = 10000
+    '''
     pbar.update(3)
     pbar.set_description("[Querying data from database]")
     pbar.update(1)
-    df = fetch_data(2015, "")
+    df = pd.read_csv('file.csv') # fetch_data(2015, "")
     pbar.set_description('[Processing data]')
     df = preprocess_data(df)
     pbar.update(1)
@@ -210,8 +212,9 @@ if __name__ == '__main__':
     centers = change_coordinates_to_utm(centers)
     pbar.update(1)
     pbar.set_description("[Storing train data to database]")
-    store_train_data(centers)
+    # store_train_data(centers)
+    centers.to_csv('train.csv', index=False)
     pbar.update(1)
     pbar.set_description("[Closing database connection.. Done!]")
     pbar.update(1)
-    connection.close()
+    # connection.close()

@@ -41,7 +41,7 @@ class Optimizer:
         '''
 
         self.algorithm = algorithm
-        self._set_data()
+        self.data = pd.read_csv('train.csv')#_set_data()
         self._set_train()
         self.score_metric = score_metric
         self.search_params = search_params
