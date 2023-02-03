@@ -164,7 +164,11 @@ def change_coordinates_to_utm(df):
     df['lon_utm'] = gdf.geometry.x
     df['lat_utm'] = gdf.geometry.y
     return df
-
+def include_ship_types(df):
+    static = pd.read_csv('static.csv')
+    vessel_types = static.groupby('sourcemmsi').shiptype.max()
+    df['vessel_type'] = df.mmsi.map(vessel_types)
+    return df
 
 def store_train_data(df):
     '''
@@ -200,6 +204,7 @@ if __name__ == '__main__':
     pbar.set_description("[Querying data from database]")
     pbar.update(1)
     df = pd.read_csv('file.csv') # fetch_data(2015, "")
+    df = include_ship_types(df)
     pbar.set_description('[Processing data]')
     df = preprocess_data(df)
     pbar.update(1)
