@@ -9,7 +9,7 @@ import config
 from datetime import timedelta
 import utm
 import tqdm
-
+from scipy.stats import circmean
 
 def database_connection():
     '''
@@ -45,14 +45,6 @@ def fetch_data(year, port):
     connection.commit()
     return pd.DataFrame(cursor.fetchall(), columns = ['mmsi', 'status', 'speed', 'heading', 'lon','lat', 'time'])
 
-def getCircularMean(angles):
-    n = len(angles)
-    sineMean = np.divide(np.sum(np.sin(np.radians(angles))), n)
-    cosineMean = np.divide(np.sum(np.cos(np.radians(angles))), n)
-    vectorMean = np.arctan2(sineMean, cosineMean)
-    return np.degrees(vectorMean)
-
-
 def preprocess_data(df):
     '''
     Preprocess the dataframe.
@@ -82,7 +74,7 @@ def preprocess_data(df):
     df.drop(df[(df.heading>360)].index, inplace=True)
     # Drop ships with less than 1000 messages
     df['date'] = pd.to_datetime(df.time, unit='s')
-    mmsis = (df.groupby('mmsi').size()>1000)
+    mmsis = (df.groupby('mmsi').size()>200)
     mmsis = mmsis[mmsis==True]
     df = df[df.mmsi.isin(list(mmsis[mmsis==True].index))]
     df.status.fillna(15,inplace=True)
@@ -141,11 +133,7 @@ def calculate_centers(df, moor=5):
     berth_visits = df[df.status==moor].groupby('berth_num')
     lon = berth_visits.lon.apply(pd.Series.median)
     lat = berth_visits.lat.apply(pd.Series.median)
-    heading = berth_visits.heading.apply(lambda x: getCircularMean(x))
-    '''
-    lon_std =  berth_visits.lon.apply(pd.Series.std)
-    lat_std = berth_visits.lat.apply(pd.Series.std)
-    '''
+    heading = berth_visits.heading.apply(lambda x: np.degrees(circmean(np.radians(x))))
     time = berth_visits.date.max()-berth_visits.date.min()
     center_df = pd.DataFrame(list(zip(lon.values, lat.values, time.values, heading.values, list(lon.index))), columns=['lon', 'lat', 'time', 'heading', 'berth_num'])
     return center_df
@@ -189,9 +177,9 @@ def store_train_data(df):
     '''
     _ = cursor.execute("DROP TABLE IF EXISTS train")
     connection.commit()
-    _ = cursor.execute("CREATE TABLE IF NOT EXISTS train (lat REAL, lon REAL, lat_utm REAL, lon_utm REAL)")
+    _ = cursor.execute("CREATE TABLE IF NOT EXISTS train (lat REAL, lon REAL, lat_utm REAL, lon_utm REAL, heading REAL)")
     connection.commit()
-    data = df[['lat', 'lon', 'lat_utm','lon_utm']].copy()
+    data = df[['lat', 'lon', 'lat_utm','lon_utm', 'heading']].copy()
     cols = ",".join([str(i) for i in data.columns.tolist()])
     for i,row in data.iterrows():
         sql = f'INSERT INTO train ({cols}) VALUES {tuple(row)}'
@@ -199,7 +187,7 @@ def store_train_data(df):
         connection.commit()
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     pbar = tqdm.tqdm(total=12)
     pbar.update(1)
     pbar.set_description("[Creating database connection]")
