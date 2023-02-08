@@ -9,3 +9,4 @@ pymonetdb==1.4.1
 tqdm==4.43.0
 utm==0.7.0
 parsedatetime==2.4
+scipy==1.9.3
