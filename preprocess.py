@@ -15,7 +15,7 @@ from scipy.stats import circmean
 
 # TODO: placeholder method before database is established
 def filter_ship_types(df):
-    static = pd.read_csv('../dbscan/lib/data/csv/static_data.csv', dtype={'sourcemmsi' : 'int'})
+    static = pd.read_csv('static_data.csv', dtype={'sourcemmsi' : 'int'})
     static = static.rename(columns={'sourcemmsi': 'mmsi'})
     vessel_types = static.groupby('mmsi').shiptype.max()
     df['vessel_type'] = df.mmsi.astype('int').map(vessel_types)
