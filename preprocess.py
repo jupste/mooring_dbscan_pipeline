@@ -69,10 +69,14 @@ class Preprocessing:
         # Read from WPI to get the coordinates for the port?
         _ = cursor.execute(
             f'SELECT {config.COLUMN_NAMES["mmsi"]}, {config.COLUMN_NAMES["status"]}, {config.COLUMN_NAMES["speed"]}, {config.COLUMN_NAMES["heading"]},'
-            f'{config.COLUMN_NAMES["lon"]}, {config.COLUMN_NAMES["lat"]}, {config.COLUMN_NAMES["time"]} FROM brest_dynamic')  # WHERE shiptype BETWEEN 70 AND 89')
+            f'{config.COLUMN_NAMES["lon"]}, {config.COLUMN_NAMES["lat"]}, {config.COLUMN_NAMES["time"]}, {config.COLUMN_NAMES["shiptype"]} FROM brest_dynamic')  # WHERE shiptype BETWEEN 70 AND 89')
         self.connection.commit()
         self.pbar.update(1)
-        return pd.DataFrame(cursor.fetchall(), columns=['mmsi', 'status', 'speed', 'heading', 'lon', 'lat', 'time'])
+        df = pd.DataFrame(cursor.fetchall(),
+                     columns=['mmsi', 'status', 'speed', 'heading', 'lon', 'lat', 'time', 'shiptype'])
+
+        df = df.astype(dtype={'mmsi': 'category', 'status': 'category', 'heading': 'float', 'lon': 'float', 'lat': 'float', 'shiptype': 'category'})
+        return df
 
     def preprocess_data(self):
         '''
@@ -109,7 +113,8 @@ class Preprocessing:
         data = data[data.mmsi.isin(list(mmsis[mmsis == True].index))]
         data.status.fillna(15, inplace=True)
         # TODO: remove after static data is included to db
-        data = filter_ship_types(data)
+        #data = filter_ship_types(data)
+        data = data[data.shiptype.isin(list(range(70, 90)))]
         self.data = data.copy()
         self._filter_by_area()
         self.pbar.update(1)
