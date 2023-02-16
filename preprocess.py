@@ -64,12 +64,12 @@ class Preprocessing:
         self.pbar.update(3)
         self.pbar.set_description("[Querying data from database]")
         cursor = self.connection.cursor()
-        cursor.arraysize = 10000
+        cursor.arraysize = 5_000_000
         # Create a mask for the bounding box?
         # Read from WPI to get the coordinates for the port?
         _ = cursor.execute(
             f'SELECT {config.COLUMN_NAMES["mmsi"]}, {config.COLUMN_NAMES["status"]}, {config.COLUMN_NAMES["speed"]}, {config.COLUMN_NAMES["heading"]},'
-            f'{config.COLUMN_NAMES["lon"]}, {config.COLUMN_NAMES["lat"]}, {config.COLUMN_NAMES["time"]}, {config.COLUMN_NAMES["shiptype"]} FROM brest_dynamic')  # WHERE shiptype BETWEEN 70 AND 89')
+            f'{config.COLUMN_NAMES["lon"]}, {config.COLUMN_NAMES["lat"]}, {config.COLUMN_NAMES["time"]}, {config.COLUMN_NAMES["shiptype"]} FROM brest_dynamic WHERE shiptype BETWEEN 70 AND 89')
         self.connection.commit()
         self.pbar.update(1)
         df = pd.DataFrame(cursor.fetchall(),
@@ -220,6 +220,7 @@ class Preprocessing:
         self.pbar.update(1)
         self.pbar.set_description("[Storing train data to database]")
         cursor = self.connection.cursor()
+        cursor.arraysize  = 1000
         _ = cursor.execute("DROP TABLE IF EXISTS train")
         self.connection.commit()
         _ = cursor.execute(
