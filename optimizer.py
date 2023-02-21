@@ -38,6 +38,7 @@ class Optimizer:
         self.best_estimator = None
         self.best_params = None
         self.best_score = None
+        self.poly = None
         self.stored_estimators = {}
 
     def _database_connection(self):
@@ -47,6 +48,8 @@ class Optimizer:
                                        hostname=config.DB_URL, database=config.DB_NAME)
         return connection
 
+    def set_polygons(self, poly):
+        self.poly = poly
     def _fetch_data(self):
         self.pbar.set_description("[Fetching data from database]")
         self.pbar.update(1)
@@ -164,25 +167,30 @@ class Optimizer:
         '''
         self._optimize(**alg_kwargs)
         self.stored_estimators[year] = self.best_estimator
-        self._store_polygons()
+        #self._store_polygons()
+        self.poly = self.make_polygons()
 
-    def _store_polygons(self):
-        poly = self.make_polygons()
+    def store_polygons(self):
+        poly = self.poly.copy()
         poly = poly.to_wkt()
+        poly.duration = poly.duration.astype('str')
         self.pbar.update(1)
         self.pbar.set_description("[Storing polygon data to database]")
         cursor = self.connection.cursor()
         _ = cursor.execute("DROP TABLE IF EXISTS polygons")
         self.connection.commit()
         _ = cursor.execute(
-            "CREATE TABLE IF NOT EXISTS polygons (cluster_id INT, geometry string, size INT)")
+            "CREATE TABLE IF NOT EXISTS polygons (cluster_id INT, geometry string, size INT, arrival_time INT, "
+            "duration string)")
         self.connection.commit()
         cols = ",".join([str(i) for i in poly.columns.tolist()])
+        print(cols)
         for i, row in poly.iterrows():
             sql = f'INSERT INTO polygons ({cols}) VALUES {tuple(row)}'
             cursor.execute(sql)
             self.connection.commit()
         self.pbar.update(1)
+
 
     def predict(self, train, year):
         # TODO: Work in  progress
